@@ -13,7 +13,7 @@ TODO:
 
 ## Example usage
 
-```
+```go
 package main
 
 import (
