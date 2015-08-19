@@ -1,9 +1,8 @@
 /*
-Package log is another implementation of logger in golang. It is dead simple,
-supports log levels, is thread safe. File writing synchronization is achieved
-using channels. Struct fileds thread-safety is achieved using locks. It is
-intended to be used in a server application (e.g. http server) writing logs
-to a file. It doesn't support writing output to Stdout/Stderr. Log file
+Package log is another implementation of logger in golang. It is simple,
+supports log levels and is thread safe. File writing synchronization is achieved
+using channels. Struct fields thread-safety is achieved using locks. It is
+intended to be used in a server application writing logs to a file. Log file 
 rotation is on a TODO list (using https://github.com/natefinch/lumberjack)
 */
 package log
@@ -25,7 +24,7 @@ const (
 	labelError = "ERROR"
 )
 
-// Log levels
+// Supported log levels.
 const (
 	LevelError uint8 = iota
 	LevelWarn
@@ -50,7 +49,7 @@ type Logger struct {
 // anything but can be safely called from application.
 func New(w io.WriteCloser, l uint8) *Logger {
 	if l > LevelDebug {
-		panic(fmt.Sprintf("Log level %v exceeds maximal allowed %v",
+		panic(fmt.Sprintf("Log level %v, but maximum allowed is %v",
 			l, LevelDebug))
 	}
 
@@ -80,8 +79,10 @@ func (l *Logger) listen() {
 	}
 }
 
-// Shutdown closes logger. It closes entries channel, waits to process remaining
-// entries and closes the writer
+// Shutdown closes logger. It closes entries channel, waits to for remaining
+// entries to process and closes the writer. Proper usage is to defer Shutdown
+// after Logger creation. On server applications, it is better to call shutdown
+// from os.Signal handler.
 func (l *Logger) Shutdown() {
 	close(l.entries)
 	<-l.done
@@ -100,7 +101,7 @@ func (l *Logger) canLog(level uint8) bool {
 }
 
 // SetLevel sets new minimal log level for logger. If desired level is higher
-// than maximal allowed, it does nothing (returns without warning)
+// than maximum allowed, method does nothing (returns without warning)
 func (l *Logger) SetLevel(level uint8) {
 	if level > LevelDebug {
 		return
