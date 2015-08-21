@@ -2,7 +2,7 @@
 Package log is another implementation of logger in golang. It is simple,
 supports log levels and is thread safe. File writing synchronization is achieved
 using channels. Struct fields thread-safety is achieved using locks. It is
-intended to be used in a server application writing logs to a file. Log file 
+intended to be used in a server application writing logs to a file. Log file
 rotation is on a TODO list (using https://github.com/natefinch/lumberjack)
 */
 package log
@@ -71,7 +71,7 @@ func (l *Logger) listen() {
 	for {
 		entry, more := <-l.entries
 		if more {
-			fmt.Fprintln(l.writer, entry)
+			fmt.Fprint(l.writer, entry)
 		} else {
 			l.done <- true
 			return
@@ -223,6 +223,21 @@ func (l *Logger) Fatalf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+// DebugEnabled returns true, if logger would print a debug entry
+func (l *Logger) DebugEnabled() bool {
+	return l.minLevel >= LevelDebug
+}
+
+// InfoEnabled returns true, if logger would print an info entry
+func (l *Logger) InfoEnabled() bool {
+	return l.minLevel >= LevelInfo
+}
+
+// WarnEnabled returns true, if logger would print a warn entry
+func (l *Logger) WarnEnabled() bool {
+	return l.minLevel >= LevelWarn
+}
+
 // logEntry struct represents a log message to be written to log file.
 // It contains all data necessary to render message.
 type logEntry struct {
@@ -235,8 +250,15 @@ type logEntry struct {
 
 // Stringer interface implementation
 func (e logEntry) String() string {
-	return fmt.Sprintf("[%v] [%v:%v] [%v] %v",
-		e.Time, e.Filename, e.Line, e.Level, e.Message)
+	var format []byte = []byte("[%v] [%v:%v] [%v] %v")
+
+	// Append end-of-line if caller didn't bother.
+	if len(e.Message) == 0 || e.Message[len(e.Message)-1] != '\n' {
+		format = append(format, '\n')
+	}
+
+	return fmt.Sprintf(string(format), e.Time, e.Filename, e.Line, e.Level,
+		e.Message)
 }
 
 // createLogEntryf is equivalent to createLogEntry, but is using format string
